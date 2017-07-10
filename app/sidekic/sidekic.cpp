@@ -14,9 +14,8 @@ void Sidekic::async_task(const string& name, Data params)
   if (file.is_open())
   {
     params["sidekic"]["type"] = name;
-    string str = params.to_json();
-    str.erase(std::remove(str.begin(), str.end(), '\n'), str.end());
-    file << str;
+    file << params.to_json();
+    file.close();
   }
   else
     throw boost_ext::runtime_error("sidekic cannot create file " + filename);

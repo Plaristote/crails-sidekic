@@ -37,9 +37,9 @@ static vector<string> get_tasks()
   return tasks;
 }
 
-static vector<string> get_commands(vector<string> tasks)
+static vector<pair<string,string> > get_commands(vector<string> tasks)
 {
-  vector<string> commands;
+  vector<pair<string,string> > commands;
 
   for (auto filename : tasks)
   {
@@ -52,8 +52,7 @@ static vector<string> get_commands(vector<string> tasks)
       while (getline(file, line))
         command += line + '\n';
       file.close();
-      remove(path(filename));
-      commands.push_back(command);
+      commands.push_back(pair<string,string>(filename, command));
     }
   }
   return commands;
@@ -61,24 +60,28 @@ static vector<string> get_commands(vector<string> tasks)
 
 static void run_tasks(ctpl::thread_pool& pool, vector<string> tasks)
 {
-  vector<string> commands = get_commands(tasks);
+  vector<pair<string,string> > commands = get_commands(tasks);
   auto timestamp = chrono::system_clock::to_time_t(chrono::system_clock::now());
 
   for (auto command : commands)
   {
-    Params data; data.from_json(command);
+    string json = command.second;
+    Params data; data.from_json(json);
     Data   sidedata = data["sidekic"];
     string type     = sidedata["type"];
     auto   runner   = sidetasks[type];
 
     if (sidedata["run_at"].exists() && sidedata["run_at"].as<time_t>() > timestamp)
       continue ;
-    pool.push([&runner, &data, type](int id)
+    remove(path(command.first));
+    pool.push([runner, json, type](int id)
     {
       try
       {
+        Params data;
         Utils::Timer timer;
 
+        data.from_json(json);
         logger << Logger::Info
           << "# Running task of type " << type << " in " << id << Logger::endl;
         runner(data);
