@@ -47,9 +47,10 @@ static vector<string> get_commands(vector<string> tasks)
 
     if (file.is_open())
     {
-      string command;
+      string command, line;
 
-      getline(file, command);
+      while (getline(file, line))
+        command += line + '\n';
       file.close();
       remove(path(filename));
       commands.push_back(command);
